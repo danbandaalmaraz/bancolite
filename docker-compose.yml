@@ -1,0 +1,27 @@
+services:
+
+  # emulador oficial de Pub/Sub de Google
+  pubsub:
+    image: gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators
+    container_name: bancolite-pubsub
+    command: gcloud beta emulators pubsub start --project=bancolite-local --host-port=0.0.0.0:8085
+    ports:
+      - "8085:8085"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # crea el topic y la suscripcion cuando el emulador ya esta arriba, y se apaga
+  pubsub-init:
+    image: curlimages/curl:8.10.1
+    container_name: bancolite-pubsub-init
+    depends_on:
+      - pubsub
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        until curl -s -o /dev/null http://pubsub:8085; do echo "esperando a pubsub..."; sleep 2; done
+        curl -s -X PUT http://pubsub:8085/v1/projects/bancolite-local/topics/transferencias
+        curl -s -X PUT http://pubsub:8085/v1/projects/bancolite-local/subscriptions/notificaciones-push \
+          -H "Content-Type: application/json" \
+          -d '{"topic":"projects/bancolite-local/topics/transferencias","pushConfig":{"pushEndpoint":"http://host.docker.internal:8083/pubsub/transferencias"}}'
+        echo "topic y suscripcion listos"

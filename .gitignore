@@ -1,0 +1,11 @@
+# compilados
+target/
+**/target/
+
+# IntelliJ
+.idea/
+*.iml
+
+# variables locales y logs, nunca subir contrasenas
+.env
+*.log
